@@ -11,6 +11,9 @@ from rest_framework import status
 
 from .models import RandomURL
 
+BASE_URL = 'https://ururl.life'
+HOME_URL = 'https://enjoy.ururl.life'
+
 # generate random shorten url
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -19,7 +22,7 @@ def generate_random_url(request):
     url_obj.hash_val = hashlib.sha256((settings.SALT+str(url_obj.id)).encode('utf-8')).hexdigest()
     postfix = baseconv.base62.encode(int(url_obj.hash_val[:10], 16))
     url_obj.save()
-    return HttpResponse(f'https://ururl.life/{postfix}', status=status.HTTP_201_CREATED)
+    return HttpResponse(f'{BASE_URL}/{postfix}', status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])
@@ -42,4 +45,4 @@ def redirect_url(request, postfix):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def redirect_home(request):
-    return redirect('https://enjoy.ururl.life')
+    return redirect(HOME_URL)
