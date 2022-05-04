@@ -37,3 +37,9 @@ def redirect_url(request, postfix):
     except Exception as e:
         print(e)
         return HttpResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def redirect_home(request):
+    return redirect('https://enjoy.ururl.life')

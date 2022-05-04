@@ -16,9 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
-from url_shortener.views import redirect_url
+from url_shortener.views import redirect_url, redirect_home
 
 urlpatterns = [
+    path('', redirect_home),
     path('admin/', admin.site.urls),
     path('api/', include('url_shortener.urls')),
     path('<str:postfix>', redirect_url)
