@@ -1,4 +1,4 @@
-import hashlib
+import hashlib, requests
 from django.forms import ValidationError
 
 from django.shortcuts import redirect
@@ -29,8 +29,12 @@ def generate_random_url(request):
     origin = request.data['origin']
 
     if not (origin.startswith('http://') or origin.startswith('https://')):
-        # TODO: handling http only url
-        origin = 'https://' + origin
+        try:
+            res = requests.head('https://' + origin, allow_redirects=True, timeout=3)
+            if res.status_code / 100 in (2, 3):
+                origin = 'https://' + origin
+        except:
+            origin = 'http://' + origin
     
     try:
         URLValidator()(origin)
