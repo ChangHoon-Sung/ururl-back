@@ -19,7 +19,7 @@ def generate_random_url(request):
     url_obj.hash_val = hashlib.sha256((settings.SALT+str(url_obj.id)).encode('utf-8')).hexdigest()
     postfix = baseconv.base62.encode(int(url_obj.hash_val[:10], 16))
     url_obj.save()
-    return HttpResponse(f'{request.get_host()}/{postfix}', status=status.HTTP_201_CREATED)
+    return HttpResponse(f'https://ururl.life/{postfix}', status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])
