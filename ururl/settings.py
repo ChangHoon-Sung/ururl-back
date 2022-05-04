@@ -28,6 +28,9 @@ DEBUG = (os.getenv('LOCAL') == 'True')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.herokuapp.com', 'ururl.life']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://ururl.life'
+]
 
 # Application definition
 
