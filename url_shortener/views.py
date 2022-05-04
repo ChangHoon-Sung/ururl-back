@@ -1,12 +1,11 @@
 import hashlib
-from random import Random
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect
 from django.utils import baseconv
 from django.conf import settings
+from django.http import HttpResponse
 
 # Create your views here.
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework import status
 
@@ -20,7 +19,7 @@ def generate_random_url(request):
     url_obj.hash_val = hashlib.sha256((settings.SALT+str(url_obj.id)).encode('utf-8')).hexdigest()
     postfix = baseconv.base62.encode(int(url_obj.hash_val[:10], 16))
     url_obj.save()
-    return Response(f'{request.get_host()}/{postfix}', status=status.HTTP_201_CREATED)
+    return HttpResponse(f'{request.get_host()}/{postfix}', status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])
@@ -34,7 +33,7 @@ def redirect_url(request, postfix):
             raise RandomURL.DoesNotExist
         return redirect(f'http://{url_obj.origin}')
     except RandomURL.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        return HttpResponse(status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         print(e)
-        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return HttpResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
