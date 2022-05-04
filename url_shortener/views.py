@@ -1,7 +1,10 @@
 import hashlib
+from django.forms import ValidationError
+
 from django.shortcuts import redirect
 from django.utils import baseconv
 from django.conf import settings
+from django.core.validators import URLValidator
 from django.http import HttpResponse
 
 # Create your views here.
@@ -11,15 +14,32 @@ from rest_framework import status
 
 from .models import RandomURL
 
+
+SALT = settings.SALT
+
 BASE_URL = 'https://ururl.life'
 HOME_URL = 'https://enjoy.ururl.life'
+
 
 # generate random shorten url
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def generate_random_url(request):
-    url_obj: RandomURL = RandomURL.objects.create(origin=request.data['origin'])
-    url_obj.hash_val = hashlib.sha256((settings.SALT+str(url_obj.id)).encode('utf-8')).hexdigest()
+    url_obj = None
+    origin = request.data['origin']
+
+    if not (origin.startswith('http://') or origin.startswith('https://')):
+        # TODO: handling http only url
+        origin = 'https://' + origin
+    
+    try:
+        URLValidator()(origin)
+    except ValidationError as e:
+        return HttpResponse('URL pattern doesn\'t match', status=status.HTTP_400_BAD_REQUEST)
+
+    url_obj: RandomURL = RandomURL.objects.create(origin=origin)
+
+    url_obj.hash_val = hashlib.sha256((SALT+str(url_obj.id)).encode('utf-8')).hexdigest()
     postfix = baseconv.base62.encode(int(url_obj.hash_val[:10], 16))
     url_obj.save()
     return HttpResponse(f'{BASE_URL}/{postfix}', status=status.HTTP_201_CREATED)
@@ -34,7 +54,7 @@ def redirect_url(request, postfix):
         url_obj: RandomURL = RandomURL.objects.filter(hash_val__startswith=hash_prefix).order_by('-created_at').first()
         if url_obj is None:
             raise RandomURL.DoesNotExist
-        return redirect(f'http://{url_obj.origin}')
+        return redirect(url_obj.origin)
     except RandomURL.DoesNotExist:
         return HttpResponse(status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
