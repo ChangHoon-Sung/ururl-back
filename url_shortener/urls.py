@@ -14,8 +14,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
-from .views import generate_random_url
+from .views import RandomURLGenerator
 
 urlpatterns = [
-    path('generate', generate_random_url)
+    path('generate', RandomURLGenerator.as_view()),
 ]
