@@ -8,7 +8,7 @@ from django.http import HttpResponse
 # Create your views here.
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import AllowAny
 from rest_framework import status, generics
 from rest_framework.exceptions import ValidationError
 
@@ -78,7 +78,7 @@ def get_postfix_type(postfix: str):
     else:
         return 'custom'
 
-def redirect_random_url(postfix: str):
+def redirect_random_url(request, postfix: str):
     hash_prefix = hex(baseconv.base62.decode(postfix))[2:]
     try:
         url_obj: RandomURL = (
@@ -88,7 +88,7 @@ def redirect_random_url(postfix: str):
         )
         if url_obj is None:
             raise RandomURL.DoesNotExist
-        return redirect(url_obj.origin)
+        return redirect(url_obj.origin) 
     except RandomURL.DoesNotExist:
         return HttpResponse(status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
@@ -105,12 +105,12 @@ def redirect_url(request, postfix):
             url_obj: CustomURL = CustomURL.objects.get(id=postfix)
             return redirect(url_obj.origin)
         except CustomURL.DoesNotExist:
-            redirect_random_url(postfix)
+            return redirect_random_url(request, postfix)
         except Exception as e:
             print(e)
             return HttpResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     elif postfix_type == 'random':
-        redirect_random_url(postfix)
+        return redirect_random_url(request, postfix)
     else:
         return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         
