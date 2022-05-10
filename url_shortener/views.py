@@ -1,4 +1,4 @@
-import hashlib, requests
+import hashlib
 
 from django.shortcuts import redirect
 from django.utils import baseconv
@@ -7,12 +7,13 @@ from django.http import HttpResponse
 
 # Create your views here.
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.permissions import AllowAny
 from rest_framework import status, generics
 from rest_framework.exceptions import ValidationError
 
-from .serializers import RandomURLSerializer
-from .models import RandomURL
+from .serializers import CustomURLSerializer, RandomURLSerializer
+from .models import RandomURL, CustomURL
 
 
 # generate random shorten url
@@ -30,17 +31,7 @@ class RandomURLGenerator(generics.CreateAPIView):
         return postfix
 
     def create(self, request):
-        origin = request.data.get("origin")
-
-        if not (origin.startswith("http://") or origin.startswith("https://")):
-            try:
-                res = requests.head("https://" + origin, allow_redirects=True, timeout=3)
-                if res.status_code / 100 in (2, 3):
-                    origin = "https://" + origin
-            except:
-                origin = "http://" + origin
-
-        serializer = self.get_serializer(data={"origin": origin})
+        serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
             postfix = self.perform_create(serializer)
@@ -50,17 +41,45 @@ class RandomURLGenerator(generics.CreateAPIView):
                 status=status.HTTP_201_CREATED,
                 headers=headers,
             )
-        except ValidationError:
-            return HttpResponse("Invalid URL", status=status.HTTP_400_BAD_REQUEST)
+        except ValidationError as e:
+            return HttpResponse(f"Validation Error: {e}", status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             raise Exception(f"Unknown Error: {e}")
 
 
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def redirect_url(request, postfix):
-    hash_prefix = hex(baseconv.base62.decode(postfix))[2:]
+# generate custom url
+class CustomURLViewset(ModelViewSet):
+    queryset = CustomURL.objects.all()
+    serializer_class = CustomURLSerializer
+    
+    # TODO need user authorization, not allow anyone to access
+    permission_classes = (AllowAny,)
 
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return HttpResponse(
+                f"{settings.BASE_URL}/{serializer.data['id']}",
+                status=status.HTTP_201_CREATED,
+                headers=headers,
+            )
+        except ValidationError as e:
+            return HttpResponse(f"Validation Error: {e}", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            raise Exception(f"Unknown Error: {e}")
+
+
+def get_postfix_type(postfix: str):
+    if len(postfix) == 7 and postfix.isalnum():
+        return 'random'
+    else:
+        return 'custom'
+
+def redirect_random_url(request, postfix: str):
+    hash_prefix = hex(baseconv.base62.decode(postfix))[2:]
     try:
         url_obj: RandomURL = (
             RandomURL.objects.filter(hash_val__startswith=hash_prefix)
@@ -69,13 +88,32 @@ def redirect_url(request, postfix):
         )
         if url_obj is None:
             raise RandomURL.DoesNotExist
-        return redirect(url_obj.origin)
+        return redirect(url_obj.origin) 
     except RandomURL.DoesNotExist:
         return HttpResponse(status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         print(e)
         return HttpResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def redirect_url(request, postfix):
+    postfix_type = get_postfix_type(postfix)
+    if postfix_type == 'custom':
+        try:
+            url_obj: CustomURL = CustomURL.objects.get(id=postfix)
+            return redirect(url_obj.origin)
+        except CustomURL.DoesNotExist:
+            return redirect_random_url(request, postfix)
+        except Exception as e:
+            print(e)
+            return HttpResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif postfix_type == 'random':
+        return redirect_random_url(request, postfix)
+    else:
+        return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
