@@ -3,12 +3,11 @@ import hashlib
 from django.shortcuts import redirect
 from django.utils import baseconv
 from django.conf import settings
-from django.http import HttpResponse
 
 # Create your views here.
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status, generics
 from rest_framework.exceptions import ValidationError
 
@@ -36,40 +35,42 @@ class RandomURLGenerator(generics.CreateAPIView):
             serializer.is_valid(raise_exception=True)
             postfix = self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
-            return HttpResponse(
+            return Response(
                 f"{settings.BASE_URL}/{postfix}",
                 status=status.HTTP_201_CREATED,
                 headers=headers,
             )
         except ValidationError as e:
-            return HttpResponse(f"Validation Error: {e}", status=status.HTTP_400_BAD_REQUEST)
+            return Response(f"Validation Error: {e}", status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             raise Exception(f"Unknown Error: {e}")
 
 
 # generate custom url
-class CustomURLViewset(ModelViewSet):
+class CustomURLGenerator(generics.CreateAPIView):
     queryset = CustomURL.objects.all()
     serializer_class = CustomURLSerializer
+    permission_classes = (IsAuthenticated,)
     
-    # TODO need user authorization, not allow anyone to access
-    permission_classes = (AllowAny,)
-
     def create(self, request):
-        serializer = self.get_serializer(data=request.data)
+        data = {'origin': request.data['origin'], 'id':request.data['id']}
+        serializer = self.get_serializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
-            return HttpResponse(
+            return Response(
                 f"{settings.BASE_URL}/{serializer.data['id']}",
                 status=status.HTTP_201_CREATED,
                 headers=headers,
             )
         except ValidationError as e:
-            return HttpResponse(f"Validation Error: {e}", status=status.HTTP_400_BAD_REQUEST)
+            return Response(f"Validation Error: {e}", status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             raise Exception(f"Unknown Error: {e}")
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 
 def get_postfix_type(postfix: str):
@@ -90,10 +91,10 @@ def redirect_random_url(request, postfix: str):
             raise RandomURL.DoesNotExist
         return redirect(url_obj.origin) 
     except RandomURL.DoesNotExist:
-        return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         print(e)
-        return HttpResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["GET"])
@@ -108,11 +109,11 @@ def redirect_url(request, postfix):
             return redirect_random_url(request, postfix)
         except Exception as e:
             print(e)
-            return HttpResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     elif postfix_type == 'random':
         return redirect_random_url(request, postfix)
     else:
-        return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_404_NOT_FOUND)
         
 
 @api_view(["GET"])

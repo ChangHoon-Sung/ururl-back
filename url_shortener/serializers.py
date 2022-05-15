@@ -13,7 +13,7 @@ def attach_scheme(origin):
         res = requests.head("https://" + origin, allow_redirects=True, timeout=1)
         if res.status_code / 100 in (2, 3):
             origin = "https://" + origin
-    except:
+    except Exception as e:
         origin = "http://" + origin
     return origin
 

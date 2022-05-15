@@ -22,6 +22,7 @@ urlpatterns = [
     path('', redirect_home),
     path('admin/', admin.site.urls),
     path('api/', include('url_shortener.urls')),
+    path('api/account/', include('account.urls')),
     path('<str:postfix>', redirect_url)
 ]
  
