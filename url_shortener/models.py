@@ -19,3 +19,4 @@ class RandomURL(URL):
 
 class CustomURL(URL):
     id = models.CharField(max_length=64, primary_key=True)
+    owner = models.ForeignKey('account.User', on_delete=models.CASCADE)
