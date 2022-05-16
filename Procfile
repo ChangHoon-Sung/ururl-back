@@ -1,1 +1,1 @@
-web: gunicorn ururl.wsgi -k gevent --workers 5 --log-file -
+web: gunicorn ururl.wsgi -k gevent --workers 5 --log-file - --log-level debug
