@@ -29,9 +29,10 @@ BASE_URL = 'http://localhost:8000' if DEBUG else os.getenv('BASE_URL')
 HOME_URL = 'https://enjoy.ururl.life'
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.herokuapp.com', 'ururl.life']
-
 CSRF_TRUSTED_ORIGINS = [
-    os.getenv('BASE_URL')
+    BASE_URL,
+    HOME_URL,
+    'https://ururl-front.herokuapp.com',
 ]
 
 # Application definition
