@@ -73,12 +73,6 @@ class CustomURLGenerator(generics.CreateAPIView):
         serializer.save(owner=self.request.user)
 
 
-def get_postfix_type(postfix: str):
-    if len(postfix) == 7 and postfix.isalnum():
-        return 'random'
-    else:
-        return 'custom'
-
 def redirect_random_url(request, postfix: str):
     hash_prefix = hex(baseconv.base62.decode(postfix))[2:]
     try:
@@ -100,20 +94,14 @@ def redirect_random_url(request, postfix: str):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def redirect_url(request, postfix):
-    postfix_type = get_postfix_type(postfix)
-    if postfix_type == 'custom':
-        try:
-            url_obj: CustomURL = CustomURL.objects.get(id=postfix)
-            return redirect(url_obj.origin)
-        except CustomURL.DoesNotExist:
-            return redirect_random_url(request, postfix)
-        except Exception as e:
-            print(e)
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    elif postfix_type == 'random':
+    try:
+        url_obj: CustomURL = CustomURL.objects.get(id=postfix)
+        return redirect(url_obj.origin)
+    except CustomURL.DoesNotExist:
         return redirect_random_url(request, postfix)
-    else:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(e)
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
 @api_view(["GET"])
