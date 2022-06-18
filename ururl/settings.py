@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
-import dj_database_url
 from pathlib import Path
 import os, sys
 
@@ -27,13 +26,14 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = (os.getenv('LOCAL') == 'True')
 BASE_URL = 'http://localhost:8000' if DEBUG else os.getenv('BASE_URL')
 HOME_URL = 'https://enjoy.ururl.life'
+BACK_SERVICE_HOST = os.getenv('BACK_SERVICE_HOST')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.herokuapp.com', 'ururl.life']
-CSRF_TRUSTED_ORIGINS = [
-    BASE_URL,
-    HOME_URL,
-    'https://ururl-front.herokuapp.com',
-]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.herokuapp.com', 'ururl.life', BACK_SERVICE_HOST]
+# CSRF_TRUSTED_ORIGINS = [
+#     BASE_URL,
+#     HOME_URL,
+#     'https://ururl-front.herokuapp.com',
+# ]
 
 # Application definition
 
@@ -88,13 +88,14 @@ WSGI_APPLICATION = 'ururl.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
-
-db_from_env = dj_database_url.config(conn_max_age=500)
-DATABASES['default'].update(db_from_env)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
